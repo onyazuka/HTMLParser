@@ -1,8 +1,27 @@
 import urllib.request as urlreq
 from html.parser import HTMLParser
+import http.client
+from urllib.parse import urlparse
 from dom import *
 
 class UrlReader:
+
+    @staticmethod
+    def createConnection(host):
+        conn = http.client.HTTPSConnection(host, 443)
+        return conn
+
+    @staticmethod
+    def getFromConnection(connection, url):
+        assert isinstance(connection, http.client.HTTPConnection), 'UrlReader::getFromConnection() - invalid connection passed'
+        #making relative url from passed absolute url
+        urlParts = urlparse(url)
+        relUrl = url.replace(urlParts.scheme, "").replace(urlParts.netloc, "")[3:]
+        connection.request("GET", relUrl, headers={
+            "Connection" : "Keep-Alive"
+        })
+        resp = connection.getresponse()
+        return resp.read().decode('utf-8')
 
     @staticmethod
     def getUrlContentsAsUtf8(url):
@@ -38,12 +57,12 @@ class HTMLDomParser(HTMLParser):
         "param",
     ]
 
-    def __init__(self, mode, content):
+    def __init__(self, mode, content, connection=None):
 
         assert mode in PARSER_MODE.values(), \
                "HTMLDomParser mode invalid"
         HTMLParser.__init__(self)
-        rawHtml = content if mode == PARSER_MODE["RAW"] else self._fromUrl(content)
+        rawHtml = content if mode == PARSER_MODE["RAW"] else self._fromUrl(content, connection)
         # stack[0] is always a document element
         self.stack = []
         self.stack.append(HTMLDocument())
@@ -77,9 +96,16 @@ class HTMLDomParser(HTMLParser):
         if(len(self.stack) > 0):
             self.stack[-1].appendChild(HTMLDomNode(self.getDocument(), parent=self.stack[-1], text=strippedData))
 
-
-    def _fromUrl(self, url):
-        rawHtml = UrlReader.getUrlContentsAsUtf8(url)
+    '''
+        Two modes supported: with alive connection and without it.
+        Connection is instance of HTTPConnection
+    '''
+    def _fromUrl(self, url, connection=None):
+        if connection is None:
+            rawHtml = UrlReader.getUrlContentsAsUtf8(url)
+        else:
+            assert isinstance(connection, http.client.HTTPConnection), 'HTMLDomParser::_fromUrl() - invalid connection passed'
+            rawHtml = UrlReader.getFromConnection(connection, url)
         return rawHtml
 
     '''

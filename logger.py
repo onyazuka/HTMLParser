@@ -2,4 +2,5 @@ class Logger:
 
     @staticmethod
     def warning(msg):
-        print(msg)
+        pass
+        #print(msg)
