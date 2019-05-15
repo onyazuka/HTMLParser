@@ -10,8 +10,9 @@ From URL:
   from parser import *
   dom = HTMLDomParser(PARSER_MODE["URL"], "http://my_favourite_web_site.zzz")
   divs = dom.getElementsByTagName("div")
-  firstDiv = divs[0].firstElementChild()
-  secondDiv = divs[0].children[1]
+  firstDiv = divs[0]
+  firstDivFirstChild = firstDiv.firstElementChild()
+  secondDiv = divs[1]
   secondDiv2 = firstDiv.nextElementSibling()
 
   navs = dom.getElementsByClassName("nav")
