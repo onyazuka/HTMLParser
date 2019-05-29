@@ -1,32 +1,8 @@
-import urllib.request as urlreq
 from html.parser import HTMLParser
 import http.client
-from urllib.parse import urlparse
+from collections import namedtuple
 from dom import *
-
-class UrlReader:
-
-    @staticmethod
-    def createConnection(host):
-        conn = http.client.HTTPSConnection(host, 443)
-        return conn
-
-    @staticmethod
-    def getFromConnection(connection, url):
-        assert isinstance(connection, http.client.HTTPConnection), 'UrlReader::getFromConnection() - invalid connection passed'
-        #making relative url from passed absolute url
-        urlParts = urlparse(url)
-        relUrl = url.replace(urlParts.scheme, "").replace(urlParts.netloc, "")[3:]
-        connection.request("GET", relUrl, headers={
-            "Connection" : "Keep-Alive"
-        })
-        resp = connection.getresponse()
-        return resp.read().decode('utf-8')
-
-    @staticmethod
-    def getUrlContentsAsUtf8(url):
-        return urlreq.urlopen(url).read().decode('utf-8')
-
+from connection import *
 
 
 PARSER_MODE = {
@@ -68,6 +44,7 @@ class HTMLDomParser(HTMLParser):
         self.stack.append(HTMLDocument())
         self.feed(rawHtml)
         self._siblingify(self.getDocument())
+        self._siblingifyElements(self.getDocument())
 
     def getDocument(self):
         assert len(self.stack) > 0, "HTMLDomParser: invalid DOM, stack is empty"
@@ -102,10 +79,10 @@ class HTMLDomParser(HTMLParser):
     '''
     def _fromUrl(self, url, connection=None):
         if connection is None:
-            rawHtml = UrlReader.getUrlContentsAsUtf8(url)
+            rawHtml = Connection.getUrlContentsAsUtf8(url)
         else:
-            assert isinstance(connection, http.client.HTTPConnection), 'HTMLDomParser::_fromUrl() - invalid connection passed'
-            rawHtml = UrlReader.getFromConnection(connection, url)
+            assert isinstance(connection, Connection), 'HTMLDomParser::_fromUrl() - invalid connection passed'
+            rawHtml = connection.getFromConnection(url)
         return rawHtml
 
     '''
@@ -122,3 +99,18 @@ class HTMLDomParser(HTMLParser):
             if i != (len(children) - 1):
                 children[i]._setRightSibling(children[i+1])
 
+    '''
+            Must be called when tree is completed.
+            Recursively makes double linked lists from one-level siblings.
+            Does siblingification for ELEMENTS only
+        '''
+
+    def _siblingifyElements(self, startElem):
+        assert isinstance(startElem, HTMLDomElement), "HTMLDomParser::_siblingifyElements() - 'startElem' is not HTMLDomElement"
+        children = startElem.children()
+        for i in range(0, len(children)):
+            if i != 0:
+                children[i]._setLeftElementSibling(children[i - 1])
+            self._siblingifyElements(children[i])
+            if i != (len(children) - 1):
+                children[i]._setRightElementSibling(children[i + 1])

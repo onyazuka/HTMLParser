@@ -1,4 +1,5 @@
 import unittest
+import time
 from parser import *
 
 HTML = '''<!DOCTYPE HTML>
@@ -26,6 +27,7 @@ HTML = '''<!DOCTYPE HTML>
         <li>Other
           <ul class="list   other_list">
             <li>Snakes</li>
+            <p>I am a neko</p>
             <li>Birds</li>
             <li>Lizards</li>
           </ul>
@@ -38,6 +40,7 @@ HTML = '''<!DOCTYPE HTML>
           <ul>
             <li>Guppy</li>
             <li>Angelfish</li>
+            <p>I am a wanko</p>
           </ul>
         </li>
         <li>Sea
@@ -110,8 +113,8 @@ class TestHTMLDomParser(unittest.TestCase):
         self.assertEqual(len(donkeys.children()), 0)
 
         otherList = doc.getElementsByClassName("other_list")[0]
-        self.assertEqual(len(otherList.childNodes()), 3)
-        self.assertEqual(len(otherList.children()), 3)
+        self.assertEqual(len(otherList.childNodes()), 4)
+        self.assertEqual(len(otherList.children()), 4)
 
     def testFirstLastChild(self):
         doc = TestHTMLDomParser.document
@@ -122,7 +125,7 @@ class TestHTMLDomParser(unittest.TestCase):
 
         aquariumUl = doc.getElementsByClassName("fishes_list")[0].firstElementChild().firstElementChild().firstElementChild()
         self.assertEqual(aquariumUl.firstElementChild().firstChild().text(), "Guppy")
-        self.assertEqual(aquariumUl.lastElementChild().firstChild().text(), "Angelfish")
+        self.assertEqual(aquariumUl.lastElementChild().firstChild().text(), "I am a wanko")
 
     def testNextPrevSibling(self):
         doc = TestHTMLDomParser.document
@@ -142,6 +145,78 @@ class TestHTMLDomParser(unittest.TestCase):
         self.assertEqual(dogs.getAttribute("name"), "Wantuz")
         self.assertEqual(dogs.getAttribute("legs"), "4")
         self.assertEqual(dogs.getAttribute("hands"), None)
+
+    def testQuerySelectorAll(self):
+        doc = TestHTMLDomParser.document
+        tree = doc.getElementById("tree")
+
+        # simple selectors
+        self.assertEqual(len(tree.querySelectorAll(".list")), 3)
+        self.assertEqual(len(tree.querySelectorAll(".fishes_list")), 1)
+        self.assertEqual(len(tree.querySelectorAll("li")), 16)
+        self.assertEqual(len(tree.querySelectorAll("ul")), 7)
+        self.assertEqual(len(tree.querySelectorAll("body")), 0)
+        self.assertEqual(len(tree.querySelectorAll("ufdsal")), 0)
+        self.assertEqual(len(tree.querySelectorAll("#donkeys")), 1)
+        self.assertEqual(len(tree.querySelectorAll("#tree")), 1)
+        self.assertEqual(len(tree.querySelectorAll("#neko")), 0)
+
+        self.assertTrue(tree.querySelectorAll(".list")[1].classList().contains("other_list"))
+        self.assertTrue(tree.querySelectorAll("#tree")[0].classList().contains("tree"))
+
+        # attributes
+        html = doc.getElementsByTagName("html")[0]
+        self.assertEqual(len(html.querySelectorAll("script[src='tree.js']")), 1)
+        self.assertEqual(len(html.querySelectorAll("script[src='tre.js']")), 0)
+        self.assertEqual(len(html.querySelectorAll("script[src]")), 1)
+        self.assertEqual(len(html.querySelectorAll("li[class]")), 2)
+        self.assertEqual(len(html.querySelectorAll("li[clas]")), 0)
+        self.assertEqual(len(html.querySelectorAll("li[class~='_']")), 0)
+        self.assertEqual(len(html.querySelectorAll("li[class~='list']")), 2)
+        self.assertEqual(len(html.querySelectorAll("li[class~='ani']")), 0)
+        self.assertEqual(len(html.querySelectorAll("li[name|='Wa']")), 1)
+        self.assertEqual(len(html.querySelectorAll("li[name|='wa']")), 0)
+        self.assertEqual(len(html.querySelectorAll("li[name^='Wa']")), 1)
+        self.assertEqual(len(html.querySelectorAll("li[name^='wa']")), 0)
+        self.assertEqual(len(html.querySelectorAll("ul[class$='st']")), 1)
+        self.assertEqual(len(html.querySelectorAll("li[class$='st']")), 2)
+        self.assertEqual(len(html.querySelectorAll("li[class*='_']")), 2)
+        self.assertEqual(len(html.querySelectorAll("li[class*='ani']")), 1)
+        self.assertEqual(len(html.querySelectorAll("li[class*='other']")), 0)
+        self.assertEqual(html.querySelectorAll("script[src='tree.js']")[0].getAttribute('src'), 'tree.js')
+
+        # asterisk
+        ol = html.querySelectorAll("ul[class*='other']")[0]
+        self.assertEqual(len(ol.querySelectorAll("*")), 5)
+
+        # complex selectors
+        self.assertEqual(len(html.querySelectorAll("li , ul")), 23)
+        self.assertEqual(len(html.querySelectorAll("li ul")), 6)
+        self.assertEqual(len(html.querySelectorAll("body ul")), 7)
+        self.assertEqual(len(html.querySelectorAll("li > ul")), 6)
+        self.assertEqual(len(html.querySelectorAll("body > ul")), 1)
+        self.assertEqual(len(html.querySelectorAll("li + ul")), 0)
+        self.assertEqual(len(html.querySelectorAll("body + ul")), 0)
+        self.assertEqual(len(html.querySelectorAll("li[name='Saru'] + li")), 1)
+        self.assertEqual(len(html.querySelectorAll("li ~ p")), 2)
+        self.assertEqual(len(html.querySelectorAll("li ~ li")), 9)
+        self.assertEqual(len(html.querySelectorAll("body ~ ul")), 0)
+
+        #more complex selectors
+        self.assertEqual(len(html.querySelectorAll("li ~ li + p")), 1)
+        self.assertEqual(len(html.querySelectorAll("li + p + li")), 1)
+        self.assertEqual(len(html.querySelectorAll("li[name='Saru'] ~ li")), 2)
+        self.assertEqual(len(html.querySelectorAll("li ~ li[name='Saru']")), 1)
+
+    def testQuerySelector(self):
+        doc = TestHTMLDomParser.document
+        tree = doc.getElementById("tree")
+        html = doc.getElementsByTagName("html")[0]
+
+        self.assertTrue(tree.querySelector(".list"))
+        self.assertFalse(tree.querySelector("body"))
+        self.assertTrue(html.querySelector("li ~ li"))
+        self.assertFalse(html.querySelector("body ~ ul"))
 
 if __name__ == '__main__':
     unittest.main()
