@@ -1,7 +1,7 @@
 # HTMLParser
 HTML parser written in Python
 
-Just a HTML DOM parser that implements most of needed functions for convenient working with HTML DOM.
+It implements most of needed functions for convenient working with HTML DOM.
 
 ## Features
 - Parsing from string or from URL(with or without connection);
@@ -11,7 +11,7 @@ Just a HTML DOM parser that implements most of needed functions for convenient w
 ## Warnings
 When using querySelect, please keep in mind some differences from native CSS selectors:
 - when using selectors like querySelectorAll("input[type='text']"), attribute value should always be quoted;
-- when using complex selectors liks querySelectorAll("div > li > div"), there should be spaces between selector and combiner character.
+- when using complex selectors like querySelectorAll("div > li > div"), there should be at least one space between each selector and operator.
 
 ## Usage
 From URL:
